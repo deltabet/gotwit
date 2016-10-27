@@ -1,0 +1,36 @@
+<html>
+<head>
+<meta charset="utf-8">
+    <title>GoBlog</title>
+<script src="https://unpkg.com/react@15.3.0/dist/react.js"></script>
+    <script src="https://unpkg.com/react-dom@15.3.0/dist/react-dom.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+</head>
+<body>
+<div id="count"></div>
+<script type="text/babel" src="count.js"></script> 
+<!-- <script type="text/javascript" src="count.js"></script> -->
+
+<!-- list of stuff -->
+{{range $key, $value := .PostList}}
+		{{printf "%d" $value.Post_id}}
+		</br>
+		{{printf "%s" $value.Author}}
+		</br>
+		{{printf "%s" $value.Text}}
+		</br>
+{{end}}
+New Post
+<form action="/page/new" method="POST">
+<div>Author: <textarea name="Author"></textarea></div>
+<div>Post: <textarea name="Text"></textarea></div>
+<div><input type="submit" value="save"></div>
+</form> 
+
+Change User
+<form action="/changeUser" method="POST">
+<div>Name: <textarea name="Name"></textarea></div>
+<div><input type="submit" value="save"></div>
+</form> 
+</body>
+</html>
