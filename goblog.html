@@ -12,9 +12,9 @@
 <!-- <script type="text/javascript" src="count.js"></script> -->
 
 <!-- list of stuff -->
+User: {{.Username}}
+</br>
 {{range $key, $value := .PostList}}
-		{{printf "%d" $value.Post_id}}
-		</br>
 		{{printf "%s" $value.Author}}
 		</br>
 		{{printf "%s" $value.Text}}
@@ -30,7 +30,9 @@ New Post
 Change User
 <form action="/changeUser" method="POST">
 <div>Name: <textarea name="Name"></textarea></div>
-<div><input type="submit" value="save"></div>
+<div><input type="submit" value="Change"></div>
 </form> 
+</br>
+<a href = "/newuser">New User</a>
 </body>
 </html>

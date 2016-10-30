@@ -10,13 +10,13 @@ import (
 	"github.com/go-web-framework/gflux/mux"
 	//"io/ioutil"
 	//"./mux"
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 var db *gorm.DB
 var userName string
-var userID int
+var userID uint
 var templates = template.Must(template.ParseFiles("goblog.html", "page.html"))
 
 // table posts (
@@ -34,6 +34,7 @@ func main(){
 	defer db.Close()
 	
 	// Migrate the schema
+	//db.CreateTable(&User{})
  	db.AutoMigrate(&Post{})
  	db.AutoMigrate(&User{})
  	db.Delete(Post{})
@@ -41,9 +42,11 @@ func main(){
 	
 	//create default user
 	userName = "default"
-	userID = 0
-	var user = User{User_id:userID, Name: userName}
+	var user = User{Name: userName}
 	db.Create(&user)
+	var user2 User
+	db.Where("Name= ?", userName).First(&user2)
+	userID = user2.ID
   
 	testMux := mux.New()
 	homeHandler := homeHandler{}
@@ -59,18 +62,18 @@ func main(){
 	testMux.GET("/newuser", nil, userHandler)
 	testMux.POST("/makeNewUser", nil, newUserHandler)
 	testMux.GET("/count.js", nil, jsHandler)
-	testMux.POST("/changeUser", nil, changeuserHandler)
+	testMux.POST("/changeUser", nil, changeUserHandler)
 	fmt.Println("Listening on :8080")
 	http.ListenAndServe(":8080", testMux)
 	
 }
-type changeuserHandler struct{}
+type changeUserHandler struct{}
 func (t changeUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	name = r.FormValue("Name")
+	name := r.FormValue("Name")
 	var user User
 	db.Where("Name= ?", name).First(&user)
 	userName = user.Name
-	userID = user.UserID
+	userID = user.ID
 	http.Redirect(w, r, "/home", http.StatusFound)
 }
 type userHandler struct{}
@@ -80,17 +83,17 @@ func (t userHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 
 type newUserHandler struct{}
 func (t newUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
-author := r.FormValue("Name")
+	name := r.FormValue("Name")
 	//no name
 	//unique name
-	if (author == ""){
+	if (name == ""){
 		http.Redirect(w, r, "/newUser", http.StatusFound)
 	}
 	//store user
 	var userList []User
 	db.Find(&userList)
-	var user = User{User_id:len(userList), Name:name}
-	db.Create(&post)
+	var user = User{Name:name}
+	db.Create(&user)
 	
 	http.Redirect(w, r, "/home", http.StatusFound)
 }
@@ -106,10 +109,10 @@ func (t homeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	//make database call
 	var postList []Post
 	var user User
-	db.Where("User_id = ?", userID).First(&user)
+	db.Where("Name = ?", userName).First(&user)
 	//db.Find(&postList)
 	db.Model(&user).Related(&postList)
-	err := templates.ExecuteTemplate(w, "goblog.html", &goBlog{PostList: postList})
+	err := templates.ExecuteTemplate(w, "goblog.html", &goBlog{Username: userName, PostList: postList})
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
     }
@@ -151,8 +154,10 @@ func (t newHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 		author = "anon"
 	}
 	text := r.FormValue("Text")
+	var postList []Post
+	db.Find(&postList)
 	//store post
-	var post = Post{UserID: userID, Post_id:uuid.New().String(), Author:author, Text:text}
+	var post = Post{UserID: userID, Author:author, Text:text}
 	db.Create(&post)
 	
 	http.Redirect(w, r, "/home", http.StatusFound)
@@ -161,14 +166,15 @@ func (t newHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 
 //ajax
 type goBlog struct{
+	Username string
 	PostList []Post
 }
 
 type Post struct{
 	gorm.Model
 	User User			`gorm:"ForeignKey:UserID"`
-	UserID 		int
-	Post_id 	int 	`gorm:""primary_key"`
+	UserID 		uint
+	//Post_id 	int 	`gorm:""primary_key"`
 	Author 		string `gorm:"type:varchar(20)"`
 	Text 			string	`gorm:"type:varchar(200)"`
 	
@@ -177,7 +183,7 @@ type Post struct{
 type User struct{
 	gorm.Model
 	Posts []Post
-	User_id int `gorm:"primary_key"`
+	//User_id 	int `gorm:"primary_key"`
 	Name		string `gorm:"type:varchar(20)"`
 }
 
