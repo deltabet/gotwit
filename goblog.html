@@ -7,8 +7,9 @@
     <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
 </head>
 <body>
-<div id="count"></div>
-<script type="text/babel" src="count.js"></script> 
+<script type="text/babel" src="posts.js"></script> 
+<div id="posts">
+
 <!-- <script type="text/javascript" src="count.js"></script> -->
 
 <!-- list of stuff -->
@@ -20,12 +21,15 @@ User: {{.Username}}
 		{{printf "%s" $value.Text}}
 		</br>
 {{end}}
+
 New Post
 <form action="/page/new" method="POST">
-<div>Author: <textarea name="Author"></textarea></div>
-<div>Post: <textarea name="Text"></textarea></div>
+<div>Author: <textarea name="author"></textarea></div>
+<div>Post: <textarea name="text"></textarea></div>
 <div><input type="submit" value="save"></div>
 </form> 
+</div>
+
 
 Change User
 <form action="/changeUser" method="POST">
