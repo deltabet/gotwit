@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"html/template"
+	//"html/template"
 	"github.com/jinzhu/gorm"
 	//_ "github.com/go-sql-driver/mysql"
 	"strconv"
@@ -12,12 +12,16 @@ import (
 	//"./mux"
 	//"github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	//"encoding/json"
+	"github.com/go-web-framework/templates"
+	//"path/filepath"
 )
 
 var db *gorm.DB
 var userName string
 var userID uint
-var templates = template.Must(template.ParseFiles("goblog.html", "page.html"))
+//var templates = template.Must(template.ParseFiles("goblog.html", "page.html"))
+var s = templates.Set{}
 
 // table posts (
 //   Post_id: int (autoincrement)
@@ -47,12 +51,16 @@ func main(){
 	var user2 User
 	db.Where("Name= ?", userName).First(&user2)
 	userID = user2.ID
-  
+	var post = Post{UserID: userID ,Author: userName, Text: "hello"}
+	db.Create(&post)
+	fmt.Printf("%d\n", post.Model.ID)
+ 
+	s.Parse("templates")
+
 	testMux := mux.New()
 	homeHandler := homeHandler{}
 	pageHandler := pageHandler{}
 	newHandler := newHandler{}
-	jsHandler := jsHandler{}
 	userHandler := userHandler{}
 	newUserHandler := newUserHandler{}
 	changeUserHandler := changeUserHandler{}
@@ -61,7 +69,6 @@ func main(){
 	testMux.POST("/page/new", nil, newHandler)
 	testMux.GET("/newuser", nil, userHandler)
 	testMux.POST("/makeNewUser", nil, newUserHandler)
-	testMux.GET("/count.js", nil, jsHandler)
 	testMux.POST("/changeUser", nil, changeUserHandler)
 	fmt.Println("Listening on :8080")
 	http.ListenAndServe(":8080", testMux)
@@ -100,19 +107,25 @@ func (t newUserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 
 type jsHandler struct{}
 func (t jsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	http.ServeFile(w, r, "count.js");
+	http.ServeFile(w, r, "posts.js");
 }
 type homeHandler struct{
 }
 
 func (t homeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	//make database call
+	
 	var postList []Post
 	var user User
 	db.Where("Name = ?", userName).First(&user)
+	//fmt.Println("name %s\n", user.Name)
 	//db.Find(&postList)
 	db.Model(&user).Related(&postList)
-	err := templates.ExecuteTemplate(w, "goblog.html", &goBlog{Username: userName, PostList: postList})
+	//err := templates.ExecuteTemplate(w, "goblog.html", &goBlog{Username: userName, PostList: postList})
+	m := make(map[string]interface{})
+	m["Username"] = userName
+	m["PostList"] = postList
+	err := s.Execute("goblog.html", w, m)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
     }
@@ -137,8 +150,12 @@ func (t pageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 		idURL = 0
 	}
 	var post Post
-	db.Where("Post_id = ?", idURL).First(&post)
-	err = templates.ExecuteTemplate(w, "page.html", &post)
+	db.Where("ID = ?", idURL).First(&post)
+	m := make(map[string]interface{})
+	m["Author"] = post.Author
+	m["Text"] = post.Text
+	//err = templates.ExecuteTemplate(w, "page.html", &post)
+	err = s.Execute("page.html", w, m)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
     }
@@ -149,16 +166,19 @@ type newHandler struct{
 }
 
 func (t newHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	author := r.FormValue("Author")
+	author := r.FormValue("author")
 	if (author == ""){
 		author = "anon"
 	}
-	text := r.FormValue("Text")
-	var postList []Post
-	db.Find(&postList)
+	text := r.FormValue("text")
+	
 	//store post
 	var post = Post{UserID: userID, Author:author, Text:text}
 	db.Create(&post)
+	//send as json
+	var postList []Post
+	db.Find(&postList)
+	
 	
 	http.Redirect(w, r, "/home", http.StatusFound)
 }
@@ -173,11 +193,10 @@ type goBlog struct{
 type Post struct{
 	gorm.Model
 	User User			`gorm:"ForeignKey:UserID"`
-	UserID 		uint
+	UserID 		uint 	`json:"userid"`
 	//Post_id 	int 	`gorm:""primary_key"`
-	Author 		string `gorm:"type:varchar(20)"`
-	Text 			string	`gorm:"type:varchar(200)"`
-	
+	Author 		string `gorm:"type:varchar(20)" json:"author"`
+	Text 			string	`gorm:"type:varchar(200)" json:"text"`
 }
 
 type User struct{

@@ -1,4 +1,3 @@
-{{ define "goblog" }}
 
 <html>
 <head>
@@ -9,7 +8,7 @@
     <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
 </head>
 <body>
-
+{{ template "header" }}
 <div id="posts">
 
 <!-- <script type="text/javascript" src="count.js"></script> -->
@@ -23,6 +22,7 @@ User: {{.Username}}
 		</br>
 		{{printf "%s" $value.Text}}
 		</br>
+		<a href="/page/{{$value.Model.ID}}">Post Link</a>
 {{end}}
 
 New Post
@@ -41,9 +41,7 @@ Change User
 </form> 
 </br>
 <a href = "/newuser">New User</a>
-{{ template "header" }}
+
 </body>
 </html>
-
-{{ end }}
 
